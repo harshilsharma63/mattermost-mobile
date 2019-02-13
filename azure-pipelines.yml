@@ -17,3 +17,18 @@ steps:
 
 - script: brew install watchman
   displayName: 'Install Watchman'
+
+- script: npm -g install react-native-cli
+  displayName: 'Install React Native CLI'
+
+- script: sudo gem install cocoapods
+  displayName: 'Install CocoaPods'
+
+- script: xcode-select --install
+  displayName: 'Install Xcode CLI'
+
+- script: sudo gem install fastlane-2.107.0.gem -NV
+  displayName: 'Install Fastlane'
+
+- script: make build
+  displayName: 'Build'

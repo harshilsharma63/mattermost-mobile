@@ -24,7 +24,7 @@ steps:
 - script: sudo gem install cocoapods
   displayName: 'Install CocoaPods'
 
-- script: sudo gem install fastlane-2.107.0.gem -NV
+- script: gem install fastlane -v 2.107.0
   displayName: 'Install Fastlane'
 
 - script: make build

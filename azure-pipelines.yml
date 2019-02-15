@@ -9,23 +9,9 @@ trigger:
 pool:
   vmImage: 'macOS-10.13'
 
+variables:
+  - group: variable-group-1
+
 steps:
-- task: NodeTool@0
-  inputs:
-    versionSpec: '10.11.x'
-  displayName: 'Install Node'
-
-- script: brew install watchman
-  displayName: 'Install Watchman'
-
-- script: npm -g install react-native-cli
-  displayName: 'Install React Native CLI'
-
-- script: sudo gem install cocoapods
-  displayName: 'Install CocoaPods'
-
-- script: gem install fastlane -v 2.107.0
-  displayName: 'Install Fastlane'
-
-- script: make build
-  displayName: 'Build'
+- script: echo $(password) 
+  displayName: 'Variable Group Test'

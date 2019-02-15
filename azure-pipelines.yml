@@ -13,5 +13,5 @@ variables:
   - group: variable-group-1
 
 steps:
-- script: echo $(password) 
+- script: echo $password
   displayName: 'Variable Group Test'

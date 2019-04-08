@@ -54,7 +54,7 @@ dist/assets: $(BASE_ASSETS) $(OVERRIDE_ASSETS)
 
 pre-run: | node_modules .podinstall dist/assets ## Installs dependencies and assets
 
-pre-build: | npm-ci .podinstall dist/assets ## Install dependencies and assets before building
+pre-build: | .podinstall dist/assets ## Install dependencies and assets before building
 
 check-style: node_modules ## Runs eslint
 	@echo Checking for style guide compliance
@@ -188,7 +188,7 @@ build-android: | stop pre-build check-style prepare-android-build ## Build the A
 	@cd fastlane && BABEL_ENV=production NODE_ENV=production bundle exec fastlane android build
 	$(call stop_packager)
 
-unsigned-ios: stop pre-build check-style ## Build an unsigned version of the iOS app
+unsigned-ios: stop pre-build ## Build an unsigned version of the iOS app
 	$(call start_packager)
 	@echo "Building unsigned iOS app"
 	@cd fastlane && NODE_ENV=production bundle exec fastlane ios unsigned

@@ -4,8 +4,54 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/xcode
 
 trigger:
-- master
+- release-*
+
+variables:
+- group: variable-group-1
+- name: version
+  value: '1.16'
 
 pool:
   vmImage: 'macOS-10.13'
 
+steps:
+- script: xcodebuild -version
+- script: sudo xcode-select -s /Applications/Xcode_10.1.app
+- script: xcodebuild -version
+
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: 3.7.x
+    addToPath: true
+    architecture: x64
+
+- task: NodeTool@0
+  inputs:
+    versionSpec: '10.11.x'
+  displayName: 'Install Node'
+
+- script: xcodebuild -version
+- script: rm -vfr ~/Library/Developer/Xcode/*
+
+- script: brew install watchman
+  displayName: 'Install Watchman'
+
+- script: npm -g install react-native-cli
+  displayName: 'Install React Native CLI'
+
+- script: sudo gem install cocoapods
+  displayName: 'Install CocoaPods'
+
+- script: gem install fastlane
+  displayName: 'Install Fastlane'
+
+- script: gem install bundler:1.17.3
+
+- script: cd $(Build.SourcesDirectory)/fastlane &&
+    bundle install
+  displayName: 'Bundle Install'
+
+- script: cd $(Build.SourcesDirectory)
+- script: make npm-ci
+- script: cp project.pbxproj node_modules/react-native/React/React.xcodeproj
+- script: make unsigned-ios

@@ -1,0 +1,430 @@
+# Xcode
+# Build, test, and archive an Xcode workspace on macOS.
+# Add steps that install certificates, test, sign, and distribute an app, save build artifacts, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/xcode
+
+trigger:
+- release-*
+
+variables:
+- group: variable-group-1
+- name: version
+  value: '1.16'
+
+pool:
+  vmImage: 'macOS-10.13'
+
+steps:
+- script: xcodebuild -version
+- script: sudo xcode-select -s /Applications/Xcode_10.1.app
+- script: xcodebuild -version
+
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: 3.7.x
+    addToPath: true
+    architecture: x64
+
+- task: NodeTool@0
+  inputs:
+    versionSpec: '10.11.x'
+  displayName: 'Install Node'
+
+- script: xcodebuild -version
+- script: rm -vfr ~/Library/Developer/Xcode/*
+
+- script: brew install watchman
+  displayName: 'Install Watchman'
+
+- script: npm -g install react-native-cli
+  displayName: 'Install React Native CLI'
+
+- script: sudo gem install cocoapods
+  displayName: 'Install CocoaPods'
+
+- script: gem install fastlane
+  displayName: 'Install Fastlane'
+
+- script: gem install bundler:1.17.3
+
+- script: cd $(Build.SourcesDirectory)/fastlane &&
+    bundle install
+  displayName: 'Bundle Install'
+
+# Building variant: Azure No Tech Data Staging
+
+- script: cd $(Build.SourcesDirectory)
+# - script: git checkout -B ci_$(Build.SourceBranchName)_azure_no_tech_data_staging
+# - script: make clean
+# - script: rm -rf ~/Library/MobileDevice/Provisioning\ Profiles/*
+# - script: rm -rf ~/Library/Developer/Xcode/DerivedData/*
+# - script: rm -rf assets/override
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'bs-ntd-staging-google-services.json'
+
+# - script: mv $(Agent.TempDirectory)/bs-ntd-staging-google-services.json $(Build.SourcesDirectory)/android/app/google-service.json
+
+- script: make npm-ci
+- script: cp project.pbxproj node_modules/react-native/React/React.xcodeproj
+- script: make unsigned-ios
+
+# - script:
+#     python $(Build.SourcesDirectory)/patch.py
+#       --variant_name='Azure No Tech Data Staging'
+#       --codebase_root=$(Build.SourcesDirectory)
+#       --utc_mobile_app_toke=$(utc_mobile_app_token)
+#       --match_username=$(match_username)
+#       --match_git_url=$(match_git_url)
+#       --fastlane_team_id=$(fastlane_team_id)
+#       --branch_to_build=ci_$(Build.SourceBranchName)_azure_no_tech_data_staging
+#       --fastlane_password=$(fastlane_password)
+#       --keychain_password=$(keychain_password)
+#       --match_type=$(match_type)
+#   displayName: 'Apply Patch - Azure No Tech Data Staging'
+
+# - script: cat $(Build.SourcesDirectory)/fastlane/.env
+# - script: git commit -am "Patched code for Azure No Tech Data Staging"
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --force
+# - script: git tag -f v$(version)_azure_no_tech_data_staging
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --tags --force
+
+# - script: cd $(Build.SourcesDirectory) && make test
+#   displayName: 'Test - Azure No Tech Data Staging'
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'utc-android.keystore'
+
+# - script: 
+#     echo "MATTERMOST_RELEASE_STORE_FILE=$(Agent.TempDirectory)/utc-android.keystore" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_KEY_ALIAS=utc-android" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_PASSWORD=$(android_signing_password)" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     cat $(Build.SourcesDirectory)/android/gradle.properties
+#   displayName: 'Save Android Signing Parameters'
+
+# - script: cd $(Build.SourcesDirectory)
+# - script: fastlane env
+# - script: fastlane match --readonly --verbose 
+
+# - script: make build-ios
+
+# - task: GitHubRelease@0
+#   inputs:
+#     gitHubConnection: 'GitHub Brightscout Private'
+#     repositoryName: 'Brightscout/mattermost-mobile-private'
+#     action: 'edit'
+#     tag: v$(version)_azure_no_tech_data_staging
+#     assets: $(Build.SourcesDirectory)/*.apk
+
+# # Building variant: Azure Tech Data Staging
+
+# - script: cd $(Build.SourcesDirectory)
+# - script: git checkout .
+# - script: git checkout $(Build.SourceBranchName)
+# - script: rm -r assets/override
+# - script: git checkout -B ci_$(Build.SourceBranchName)_azure_tech_data_staging
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'bs-ntd-staging-google-services.json'
+
+# - script: mv $(Agent.TempDirectory)/bs-ntd-staging-google-services.json $(Build.SourcesDirectory)/android/app/google-service.json
+
+# - script:
+#     python $(Build.SourcesDirectory)/patch.py
+#       --variant_name='Azure Tech Data Staging'
+#       --codebase_root=$(Build.SourcesDirectory)
+#       --utc_mobile_app_toke=$(utc_mobile_app_token)
+#       --match_username=$(match_username)
+#       --match_git_url=$(match_git_url)
+#       --fastlane_team_id=$(fastlane_team_id)
+#       --branch_to_build=ci_$(Build.SourceBranchName)_azure_tech_data_staging
+#       --fastlane_password=$(fastlane_password)
+#       --keychain_password=$(keychain_password)
+#       --match_type=$(match_type)
+#   displayName: 'Apply Patch - Azure Tech Data Staging'
+
+# - script: cat $(Build.SourcesDirectory)/fastlane/.env
+# - script: git commit -am "Patched code for Azure Tech Data Staging"
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --force
+# - script: git tag -f v$(version)_azure_tech_data_staging
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --tags --force
+
+# - script: cd $(Build.SourcesDirectory) && make test
+#   displayName: 'Test - Azure Tech Data Staging'
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'utc-android.keystore'
+
+# - script: 
+#     echo "MATTERMOST_RELEASE_STORE_FILE=$(Agent.TempDirectory)/utc-android.keystore" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_KEY_ALIAS=utc-android" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_PASSWORD=$(android_signing_password)" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     cat $(Build.SourcesDirectory)/android/gradle.properties
+#   displayName: 'Save Android Signing Parameters'
+
+# - script: cd $(Build.SourcesDirectory)
+# - script: fastlane env
+# # - script: fastlane match --readonly --verbose 
+
+# - script: make build-android
+
+# - task: GitHubRelease@0
+#   inputs:
+#     gitHubConnection: 'GitHub Brightscout Private'
+#     repositoryName: 'Brightscout/mattermost-mobile-private'
+#     action: 'edit'
+#     tag: v$(version)_azure_tech_data_staging
+#     assets: $(Build.SourcesDirectory)/*.apk
+
+# # Building variant: Azure Tech Data Production
+
+# - script: cd $(Build.SourcesDirectory)
+# - script: git checkout .
+# - script: git checkout $(Build.SourceBranchName)
+# - script: rm -r assets/override
+# - script: git checkout -B ci_$(Build.SourceBranchName)_azure_tech_data_production
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'bs-ntd-staging-google-services.json'
+
+# - script: mv $(Agent.TempDirectory)/bs-ntd-staging-google-services.json $(Build.SourcesDirectory)/android/app/google-service.json
+
+# - script:
+#     python $(Build.SourcesDirectory)/patch.py
+#       --variant_name='Azure Tech Data Production'
+#       --codebase_root=$(Build.SourcesDirectory)
+#       --utc_mobile_app_toke=$(utc_mobile_app_token)
+#       --match_username=$(match_username)
+#       --match_git_url=$(match_git_url)
+#       --fastlane_team_id=$(fastlane_team_id)
+#       --branch_to_build=ci_$(Build.SourceBranchName)_azure_tech_data_production
+#       --fastlane_password=$(fastlane_password)
+#       --keychain_password=$(keychain_password)
+#       --match_type=$(match_type)
+#   displayName: 'Apply Patch - Azure Tech Data Production'
+
+# - script: cat $(Build.SourcesDirectory)/fastlane/.env
+# - script: git commit -am "Patched code for Azure Tech Data Production"
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --force
+# - script: git tag -f v$(version)_azure_tech_data_production
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --tags --force
+
+# - script: cd $(Build.SourcesDirectory) && make test
+#   displayName: 'Test - Azure Tech Data Production'
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'utc-android.keystore'
+
+# - script: 
+#     echo "MATTERMOST_RELEASE_STORE_FILE=$(Agent.TempDirectory)/utc-android.keystore" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_KEY_ALIAS=utc-android" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_PASSWORD=$(android_signing_password)" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     cat $(Build.SourcesDirectory)/android/gradle.properties
+#   displayName: 'Save Android Signing Parameters'
+
+# - script: cd $(Build.SourcesDirectory)
+# - script: fastlane env
+# # - script: fastlane match --readonly --verbose 
+
+# - script: make build-android
+
+# - task: GitHubRelease@0
+#   inputs:
+#     gitHubConnection: 'GitHub Brightscout Private'
+#     repositoryName: 'Brightscout/mattermost-mobile-private'
+#     action: 'edit'
+#     tag: v$(version)_azure_tech_data_production
+#     assets: $(Build.SourcesDirectory)/*.apk
+
+# # Building variant: Azure No Tech Data Production
+
+# - script: cd $(Build.SourcesDirectory)
+# - script: git checkout .
+# - script: git checkout $(Build.SourceBranchName)
+# - script: rm -r assets/override
+# - script: git checkout -B ci_$(Build.SourceBranchName)_azure_no_tech_data_production
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'bs-ntd-staging-google-services.json'
+
+# - script: mv $(Agent.TempDirectory)/bs-ntd-staging-google-services.json $(Build.SourcesDirectory)/android/app/google-service.json
+
+# - script:
+#     python $(Build.SourcesDirectory)/patch.py
+#       --variant_name='Azure No Tech Data Production'
+#       --codebase_root=$(Build.SourcesDirectory)
+#       --utc_mobile_app_toke=$(utc_mobile_app_token)
+#       --match_username=$(match_username)
+#       --match_git_url=$(match_git_url)
+#       --fastlane_team_id=$(fastlane_team_id)
+#       --branch_to_build=ci_$(Build.SourceBranchName)_azure_no_tech_data_production
+#       --fastlane_password=$(fastlane_password)
+#       --keychain_password=$(keychain_password)
+#       --match_type=$(match_type)
+#   displayName: 'Apply Patch - Azure No Tech Data Production'
+
+# - script: cat $(Build.SourcesDirectory)/fastlane/.env
+# - script: git commit -am "Patched code for Azure No Tech Data Production"
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --force
+# - script: git tag -f v$(version)_azure_no_tech_data_production
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --tags --force
+
+# - script: cd $(Build.SourcesDirectory) && make test
+#   displayName: 'Test - Azure No Tech Data Production'
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'utc-android.keystore'
+
+# - script: 
+#     echo "MATTERMOST_RELEASE_STORE_FILE=$(Agent.TempDirectory)/utc-android.keystore" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_KEY_ALIAS=utc-android" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_PASSWORD=$(android_signing_password)" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     cat $(Build.SourcesDirectory)/android/gradle.properties
+#   displayName: 'Save Android Signing Parameters'
+
+# - script: cd $(Build.SourcesDirectory)
+# - script: fastlane env
+# # - script: fastlane match --readonly --verbose 
+
+# - script: make build-android
+
+# - task: GitHubRelease@0
+#   inputs:
+#     gitHubConnection: 'GitHub Brightscout Private'
+#     repositoryName: 'Brightscout/mattermost-mobile-private'
+#     action: 'edit'
+#     tag: v$(version)_azure_no_tech_data_production
+#     assets: $(Build.SourcesDirectory)/*.apk
+
+# # Building variant: Azure No Tech Data Prod BYOD
+
+# - script: cd $(Build.SourcesDirectory)
+# - script: git checkout .
+# - script: git checkout $(Build.SourceBranchName)
+# - script: rm -r assets/override
+# - script: git checkout -B ci_$(Build.SourceBranchName)_azure_no_tech_data_production_byod
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'bs-ntd-staging-google-services.json'
+
+# - script: mv $(Agent.TempDirectory)/bs-ntd-staging-google-services.json $(Build.SourcesDirectory)/android/app/google-service.json
+
+# - script:
+#     python $(Build.SourcesDirectory)/patch.py
+#       --variant_name='Azure No Tech Data Prod BYOD'
+#       --codebase_root=$(Build.SourcesDirectory)
+#       --utc_mobile_app_toke=$(utc_mobile_app_token)
+#       --match_username=$(match_username)
+#       --match_git_url=$(match_git_url)
+#       --fastlane_team_id=$(fastlane_team_id)
+#       --branch_to_build=ci_$(Build.SourceBranchName)_azure_no_tech_data_production_byod
+#       --fastlane_password=$(fastlane_password)
+#       --keychain_password=$(keychain_password)
+#       --match_type=$(match_type)
+#   displayName: 'Apply Patch - Azure No Tech Data Prod BYOD'
+
+# - script: cat $(Build.SourcesDirectory)/fastlane/.env
+# - script: git commit -am "Patched code for Azure No Tech Data Prod BYOD"
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --force
+# - script: git tag -f v$(version)_azure_no_tech_data_production_byod
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --tags --force
+
+# - script: cd $(Build.SourcesDirectory) && make test
+#   displayName: 'Test - Azure No Tech Data Prod BYOD'
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'utc-android.keystore'
+
+# - script: 
+#     echo "MATTERMOST_RELEASE_STORE_FILE=$(Agent.TempDirectory)/utc-android.keystore" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_KEY_ALIAS=utc-android" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_PASSWORD=$(android_signing_password)" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     cat $(Build.SourcesDirectory)/android/gradle.properties
+#   displayName: 'Save Android Signing Parameters'
+
+# - script: cd $(Build.SourcesDirectory)
+# - script: fastlane env
+# # - script: fastlane match --readonly --verbose 
+
+# - script: make build-android
+
+# - task: GitHubRelease@0
+#   inputs:
+#     gitHubConnection: 'GitHub Brightscout Private'
+#     repositoryName: 'Brightscout/mattermost-mobile-private'
+#     action: 'edit'
+#     tag: v$(version)_azure_no_tech_data_production_byod_pin
+#     assets: $(Build.SourcesDirectory)/*.apk
+
+# # Building variant: Azure No Tech Data Prod BYOD PIN
+
+# - script: cd $(Build.SourcesDirectory)
+# - script: git checkout .
+# - script: git checkout $(Build.SourceBranchName)
+# - script: rm -r assets/override
+# - script: git checkout -B ci_$(Build.SourceBranchName)_azure_no_tech_data_production_byod_pin
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'bs-ntd-staging-google-services.json'
+
+# - script: mv $(Agent.TempDirectory)/bs-ntd-staging-google-services.json $(Build.SourcesDirectory)/android/app/google-service.json
+
+# - script:
+#     python $(Build.SourcesDirectory)/patch.py
+#       --variant_name='Azure No Tech Data Prod BYOD PIN'
+#       --codebase_root=$(Build.SourcesDirectory)
+#       --utc_mobile_app_toke=$(utc_mobile_app_token)
+#       --match_username=$(match_username)
+#       --match_git_url=$(match_git_url)
+#       --fastlane_team_id=$(fastlane_team_id)
+#       --branch_to_build=ci_$(Build.SourceBranchName)_azure_no_tech_data_production_byod_pin
+#       --fastlane_password=$(fastlane_password)
+#       --keychain_password=$(keychain_password)
+#       --match_type=$(match_type)
+#   displayName: 'Apply Patch - Azure No Tech Data Prod BYOD PIN'
+
+# - script: cat $(Build.SourcesDirectory)/fastlane/.env
+# - script: git commit -am "Patched code for Azure No Tech Data Prod BYOD PIN"
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --force
+# - script: git tag -f v$(version)_azure_no_tech_data_production_byod_pin
+# - script: git push https://$(github_pat)@github.com/Brightscout/mattermost-mobile-private.git --tags --force
+
+# - script: cd $(Build.SourcesDirectory) && make test
+#   displayName: 'Test - Azure No Tech Data Prod BYOD PIN'
+
+# - task: DownloadSecureFile@1
+#   inputs:
+#     secureFile: 'utc-android.keystore'
+
+# - script: 
+#     echo "MATTERMOST_RELEASE_STORE_FILE=$(Agent.TempDirectory)/utc-android.keystore" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_KEY_ALIAS=utc-android" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     echo "MATTERMOST_RELEASE_PASSWORD=$(android_signing_password)" >> $(Build.SourcesDirectory)/android/gradle.properties &&
+#     cat $(Build.SourcesDirectory)/android/gradle.properties
+#   displayName: 'Save Android Signing Parameters'
+
+# - script: cd $(Build.SourcesDirectory)
+# - script: fastlane env
+# # - script: fastlane match --readonly --verbose 
+
+# - script: make build-android
+
+# - task: GitHubRelease@0
+#   inputs:
+#     gitHubConnection: 'GitHub Brightscout Private'
+#     repositoryName: 'Brightscout/mattermost-mobile-private'
+#     action: 'edit'
+#     tag: v$(version)_azure_no_tech_data_production_byod_pin
+#     assets: $(Build.SourcesDirectory)/*.apk
+
